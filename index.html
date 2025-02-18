@@ -2,66 +2,120 @@
 <html>
 <head>
     <title>Tetris-Bejeweled Hybrid</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            background-color: #1a1a1a;
+            background-color: #2c3e50;
             font-family: Arial, sans-serif;
-            color: white;
         }
         
-        .game-container {
-            display: flex;
-            gap: 20px;
+        .container {
+            text-align: center;
+            color: white;
             padding: 20px;
         }
         
         .game-board {
             position: relative;
-        }
-        
-        canvas {
-            border: 2px solid #333;
-            background-color: #000;
-        }
-        
-        .side-panel {
-            width: 250px;
+            display: inline-flex;
+            background-color: #1a1a1a;
             padding: 20px;
-            background: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
-        }
-        
-        .combo-guide {
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             margin-bottom: 20px;
         }
         
-        .combo-item {
-            margin: 10px 0;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
+        .game-area {
+            position: relative;
+        }
+        
+        #gameCanvas {
+            display: block;
+            margin: 0;
+        }
+        
+        .speed-indicator {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 18px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 15px;
+            z-index: 1;
+        }
+        
+        .next-piece {
+            margin-left: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .next-piece h3 {
+            margin: 0 0 10px 0;
+            color: #FFD700;
+            font-size: 18px;
+        }
+        
+        .leaderboard-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: rgba(26, 26, 26, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .leaderboard-title {
+            color: #FFD700;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-align: center;
         }
         
         .leaderboard {
-            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
         }
         
-        .leaderboard-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            padding: 5px;
-            background: rgba(255, 255, 255, 0.05);
+        .leaderboard th {
+            color: #3498db;
+            padding: 10px;
+            text-align: left;
+            border-bottom: 2px solid #3498db;
         }
         
-        h2 {
+        .leaderboard td {
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .leaderboard tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .leaderboard tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .leaderboard .rank {
             color: #FFD700;
-            margin-bottom: 10px;
+            font-weight: bold;
+            width: 50px;
+        }
+        
+        .leaderboard .score {
+            color: #2ecc71;
+            font-weight: bold;
+            text-align: right;
         }
         
         .modal {
@@ -71,85 +125,406 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
         }
         
         .modal-content {
-            background: #2a2a2a;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2c3e50;
             padding: 20px;
             border-radius: 10px;
             text-align: center;
-            max-width: 400px;
-            width: 90%;
+            color: white;
         }
         
-        .modal input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            background: #333;
-            border: none;
-            color: white;
-            border-radius: 5px;
+        .modal h2 {
+            margin-top: 0;
+            color: #FFD700;
         }
         
         .modal button {
-            padding: 10px 20px;
-            margin: 5px;
+            background-color: #3498db;
+            color: white;
             border: none;
+            padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            background: #4CAF50;
-            color: white;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
         }
         
-        .modal button.share {
-            background: #1DA1F2;
+        .modal button:hover {
+            background-color: #2980b9;
         }
         
-        .speed-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
+        .modal-content .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-content .button-group button {
+            margin: 0;
+        }
+        
+        .modal-content input {
+            margin-bottom: 0;
+            margin-top: 20px;
+        }
+        
+        /* Mobile Controls */
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 10px;
+            border-radius: 15px;
+            z-index: 1000;
+        }
+        
+        .d-pad {
+            width: 180px;
+            height: 180px;
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+        }
+        
+        .d-pad button {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: rgba(52, 152, 219, 0.8);
+            color: white;
+            font-size: 24px;
+            border-radius: 10px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .d-pad button:active {
+            background: rgba(41, 128, 185, 0.9);
+            transform: scale(0.95);
+        }
+        
+        .d-pad .up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .d-pad .left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        .d-pad .right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        .d-pad .down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+        
+        .d-pad button svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        }
+        
+        .d-pad .up svg {
+            transform: rotate(0deg);
+        }
+        
+        .d-pad .right svg {
+            transform: rotate(90deg);
+        }
+        
+        .d-pad .down svg {
+            transform: rotate(180deg);
+        }
+        
+        .d-pad .left svg {
+            transform: rotate(270deg);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                min-height: 100vh;
+                padding: 0;
+                margin: 0;
+                overflow-x: hidden;
+            }
+            
+            .container {
+                padding: 10px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin: 10px 0;
+            }
+            
+            .game-board {
+                flex-direction: row;
+                padding: 10px;
+                margin: 0 auto;
+                width: fit-content;
+                align-items: flex-start;
+                max-width: 95vw;
+            }
+            
+            .game-area {
+                flex-shrink: 0;
+            }
+            
+            #gameCanvas {
+                width: 300px;
+                height: 600px;
+            }
+            
+            .next-piece {
+                margin-left: 10px;
+                width: 150px;
+                height: 600px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 20px;
+                box-sizing: border-box;
+            }
+            
+            .next-piece h2 {
+                margin: 0 0 20px 0;
+                font-size: 1.5em;
+                color: white;
+            }
+            
+            #previewCanvas {
+                width: 120px;
+                height: 120px;
+                margin: 10px 0;
+            }
+            
+            .score-display {
+                margin-top: 20px;
+                text-align: center;
+                width: 100%;
+                font-size: 1.2em;
+            }
+            
+            .mobile-controls {
+                display: block;
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                padding: 15px;
+                border-radius: 20px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 1000;
+            }
+            
+            .d-pad {
+                width: 200px;
+                height: 200px;
+                gap: 8px;
+            }
+            
+            .d-pad button {
+                font-size: 28px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(52, 152, 219, 0.9);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                transition: transform 0.1s, background-color 0.1s;
+            }
+            
+            .d-pad button:active {
+                transform: scale(0.92);
+                background: rgba(41, 128, 185, 1);
+            }
+            
+            .d-pad button svg {
+                width: 48px;
+                height: 48px;
+            }
+            
+            .leaderboard-container {
+                margin-bottom: 240px; /* Space for d-pad */
+                margin-top: 20px;
+            }
+            
+            .speed-indicator {
+                top: -25px;
+                font-size: 16px;
+                padding: 4px 12px;
+            }
+            
+            @media (max-width: 480px) {
+                .game-board {
+                    padding: 5px;
+                    transform: scale(0.9);
+                    transform-origin: top center;
+                }
+                
+                #gameCanvas {
+                    width: 270px;
+                    height: 540px;
+                }
+                
+                .next-piece {
+                    height: 540px;
+                    width: 130px;
+                    margin-left: 5px;
+                    padding: 15px;
+                }
+                
+                .next-piece h2 {
+                    font-size: 1.3em;
+                    margin: 0 0 15px 0;
+                }
+                
+                #previewCanvas {
+                    width: 100px;
+                    height: 100px;
+                }
+                
+                .score-display {
+                    font-size: 1.1em;
+                }
+            }
+        }
+        
+        /* Prevent text selection on mobile */
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        .follow-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: #000000;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-bottom: 20px;
+            transition: background-color 0.2s;
+        }
+        
+        .follow-button:hover {
+            background-color: #1a1a1a;
+        }
+        
+        .follow-button svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+        
+        .title-section {
+            margin-bottom: 20px;
+        }
+        
+        .title-section h1 {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="side-panel">
-            <h2>Combo Guide</h2>
-            <div class="combo-guide">
-                <div class="combo-item">
-                    <strong>3 in a row</strong>: Clear blocks (100pts)
-                </div>
-                <div class="combo-item">
-                    <strong>4 in a row</strong>: Clear line (300pts)
-                </div>
-                <div class="combo-item">
-                    <strong>5 in a row</strong>: Clear color (500pts)
-                </div>
-                <div class="combo-item">
-                    <strong>Full line</strong>: Tetris clear (800pts)
-                </div>
-                <div class="combo-item">
-                    <strong>Combo multiplier</strong>: +50pts per combo
-                </div>
-            </div>
-            
-            <h2>Leaderboard</h2>
-            <div class="leaderboard" id="leaderboard">
-                <!-- Leaderboard items will be inserted here -->
-            </div>
+    <div class="container">
+        <div class="title-section">
+            <h1>Tetris Bejeweled</h1>
+            <a href="https://x.com/RealFredericVC" target="_blank" class="follow-button">
+                <svg viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                Follow @RealFredericVC
+            </a>
         </div>
         
         <div class="game-board">
-            <div class="speed-indicator">Speed: 1x</div>
-            <canvas id="gameCanvas" width="300" height="600"></canvas>
+            <div class="speed-indicator">Speed: 1.0x</div>
+            <div class="game-area">
+                <canvas id="gameCanvas" width="300" height="600"></canvas>
+            </div>
+            <div class="next-piece">
+                <h2>Next</h2>
+                <canvas id="previewCanvas" width="120" height="120"></canvas>
+            </div>
+        </div>
+        
+        <!-- Mobile Controls -->
+        <div class="mobile-controls">
+            <div class="d-pad">
+                <button class="up" data-key="ArrowUp">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L3 14h6v8h6v-8h6L12 2z"/>
+                    </svg>
+                </button>
+                <button class="left" data-key="ArrowLeft">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L3 14h6v8h6v-8h6L12 2z"/>
+                    </svg>
+                </button>
+                <button class="right" data-key="ArrowRight">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L3 14h6v8h6v-8h6L12 2z"/>
+                    </svg>
+                </button>
+                <button class="down" data-key="ArrowDown">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L3 14h6v8h6v-8h6L12 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="leaderboard-container">
+            <div class="leaderboard-title">Leaderboard</div>
+            <table class="leaderboard" id="leaderboard">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Leaderboard items will be inserted here -->
+                </tbody>
+            </table>
         </div>
     </div>
     
@@ -158,12 +533,36 @@
             <h2>Game Over!</h2>
             <p>Your score: <span id="finalScore">0</span></p>
             <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
-            <button id="submitScore" onclick="submitScore()">Submit Score</button>
-            <button class="share" onclick="shareScore()">Share on X</button>
-            <button onclick="startNewGame()">Play Again</button>
+            <div class="button-group">
+                <button id="submitScore" onclick="submitScore()">Submit Score</button>
+                <button class="share" onclick="shareScore()">Share on X</button>
+                <button onclick="startNewGame()">Play Again</button>
+            </div>
         </div>
     </div>
     
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <!-- Initialize Firebase -->
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoObcdh3hknVqZBSRo26kBZj0_ZY5ubbs",
+            authDomain: "tetris-bejeweled.firebaseapp.com",
+            databaseURL: "https://tetris-bejeweled-default-rtdb.firebaseio.com",
+            projectId: "tetris-bejeweled",
+            storageBucket: "tetris-bejeweled.appspot.com",
+            messagingSenderId: "79788906400",
+            appId: "1:79788906400:web:b06de269ed5462a65d36c5"
+        };
+        
+        // Initialize Firebase before loading game.js
+        firebase.initializeApp(firebaseConfig);
+        window.firebaseInitialized = true;
+    </script>
+
     <script src="game.js"></script>
 </body>
 </html>
