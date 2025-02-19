@@ -59,6 +59,7 @@ let gameOver = false;
 let gameLoop;
 let leaderboard = [];
 let isPaused = false;
+let wasManuallyPaused = false;
 
 function loadLeaderboard() {
     try {
@@ -209,6 +210,7 @@ function startNewGame() {
     activeAnimations = [];
     gameOver = false;
     isPaused = false;
+    wasManuallyPaused = false;
     dropInterval = 1000 / gameSpeed;
     
     const submitButton = document.getElementById('submitScore');
@@ -828,8 +830,9 @@ function drawPauseScreen() {
     
     // Instructions
     ctx.font = 'bold 24px Arial';
-    ctx.strokeText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 50);
-    ctx.fillText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 50);
+    const resumeText = wasManuallyPaused ? 'Press P to Resume' : 'Click to Resume';
+    ctx.strokeText(resumeText, canvas.width / 2, canvas.height / 2 + 50);
+    ctx.fillText(resumeText, canvas.width / 2, canvas.height / 2 + 50);
     
     ctx.restore();
 }
@@ -919,6 +922,7 @@ document.addEventListener('keydown', event => {
     
     if (key.toLowerCase() === 'p') {
         isPaused = !isPaused;
+        wasManuallyPaused = isPaused;
         return;
     }
     
@@ -1030,6 +1034,29 @@ function createLineClearAnimation(isHorizontal) {
     };
     activeAnimations.push(text);
 }
+
+// Handle visibility change (tab/window focus)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !gameOver) {
+        isPaused = true;
+        wasManuallyPaused = false;
+    }
+});
+
+// Handle canvas click to resume when auto-paused
+canvas.addEventListener('click', () => {
+    if (isPaused && !wasManuallyPaused && !gameOver) {
+        isPaused = false;
+    }
+});
+
+// Handle blur event for when window loses focus
+window.addEventListener('blur', () => {
+    if (!gameOver) {
+        isPaused = true;
+        wasManuallyPaused = false;
+    }
+});
 
 loadLeaderboard();
 startNewGame();
