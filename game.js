@@ -211,6 +211,8 @@ function startNewGame() {
     gameOver = false;
     isPaused = false;
     wasManuallyPaused = false;
+    gameSpeed = 1;
+    lastSpeedIncrease = 0;
     dropInterval = 1000 / gameSpeed;
     
     const submitButton = document.getElementById('submitScore');
