@@ -58,6 +58,7 @@ let dropInterval;
 let gameOver = false;
 let gameLoop;
 let leaderboard = [];
+let isPaused = false;
 
 function loadLeaderboard() {
     try {
@@ -204,8 +205,10 @@ function startNewGame() {
     board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
     score = 0;
     comboCount = 0;
-    gameSpeed = 1;
+    sparkles = [];
+    activeAnimations = [];
     gameOver = false;
+    isPaused = false;
     dropInterval = 1000 / gameSpeed;
     
     const submitButton = document.getElementById('submitScore');
@@ -726,15 +729,21 @@ function update(time) {
         return;
     }
 
+    if (isPaused) {
+        drawPauseScreen();
+        gameLoop = requestAnimationFrame(update);
+        return;
+    }
+
     const deltaTime = time - lastTime;
     lastTime = time;
+    
     dropCounter += deltaTime;
-
     if (dropCounter > dropInterval) {
         moveDown();
         dropCounter = 0;
     }
-
+    
     draw();
     gameLoop = requestAnimationFrame(update);
 }
@@ -798,6 +807,31 @@ function draw() {
     }
     
     document.querySelector('.speed-indicator').textContent = `Speed: ${gameSpeed.toFixed(1)}x`;
+}
+
+function drawPauseScreen() {
+    ctx.save();
+    
+    // Semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Pause text
+    ctx.font = 'bold 48px Arial';
+    ctx.fillStyle = '#FFD700';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('PAUSED', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+    
+    // Instructions
+    ctx.font = 'bold 24px Arial';
+    ctx.strokeText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 50);
+    ctx.fillText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 50);
+    
+    ctx.restore();
 }
 
 function drawPreviewPiece() {
@@ -880,7 +914,15 @@ const keysHeld = {};
 
 document.addEventListener('keydown', event => {
     if (gameOver) return;
+    
     const key = event.key;
+    
+    if (key.toLowerCase() === 'p') {
+        isPaused = !isPaused;
+        return;
+    }
+    
+    if (isPaused) return;
     
     if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(key)) {
         if (!keysHeld[key]) {
