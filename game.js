@@ -12,12 +12,8 @@ const COLORS = [
     '#00FF00', // Bright Green
     '#0000FF', // Blue
     '#FFD700', // Gold
-    // '#FF1493', // Deep Pink
-    // '#00FFFF', // Cyan
-    // '#FF8C00'  // Dark Orange
 ];
 
-// Define all possible Tetris pieces
 const SHAPES = [
     {
         shape: [[1, 1], [1, 1]], // Square
@@ -54,7 +50,7 @@ let currentPiece = null;
 let nextPiece = null;
 let score = 0;
 let sparkles = [];
-let comboCount = 0;  // Initialize combo counter
+let comboCount = 0;
 let activeAnimations = [];
 let gameSpeed = 1;
 let lastSpeedIncrease = 0;
@@ -63,11 +59,9 @@ let gameOver = false;
 let gameLoop;
 let leaderboard = [];
 
-// Load leaderboard from Firebase or localStorage
 function loadLeaderboard() {
     try {
         if (window.firebaseInitialized && firebase) {
-            // Use Firebase if available
             const leaderboardRef = firebase.database().ref('leaderboard');
             leaderboardRef.orderByChild('score').limitToLast(10).on('value', (snapshot) => {
                 leaderboard = [];
@@ -78,7 +72,6 @@ function loadLeaderboard() {
                 updateLeaderboardDisplay();
             });
         } else {
-            // Fallback to localStorage if Firebase is not available
             const savedLeaderboard = localStorage.getItem('leaderboard');
             if (savedLeaderboard) {
                 leaderboard = JSON.parse(savedLeaderboard);
@@ -87,7 +80,6 @@ function loadLeaderboard() {
         }
     } catch (error) {
         console.error('Error loading leaderboard:', error);
-        // Fallback to localStorage if Firebase fails
         const savedLeaderboard = localStorage.getItem('leaderboard');
         if (savedLeaderboard) {
             leaderboard = JSON.parse(savedLeaderboard);
@@ -101,23 +93,18 @@ function updateLeaderboardDisplay() {
     const tbody = leaderboardDiv.querySelector('tbody');
     tbody.innerHTML = '';
     
-    // Sort scores in descending order
     const sortedScores = leaderboard.sort((a, b) => b.score - a.score);
     
-    // Display top 10 scores
     sortedScores.slice(0, 10).forEach((entry, index) => {
         const row = document.createElement('tr');
         
-        // Rank column
         const rankCell = document.createElement('td');
         rankCell.className = 'rank';
         rankCell.textContent = `#${index + 1}`;
         
-        // Player name column
         const nameCell = document.createElement('td');
         nameCell.textContent = entry.name || 'Anonymous';
         
-        // Score column
         const scoreCell = document.createElement('td');
         scoreCell.className = 'score';
         scoreCell.textContent = entry.score.toLocaleString();
@@ -136,14 +123,12 @@ function showGameOverModal() {
     const submitButton = document.getElementById('submitScore');
     const shareButton = document.getElementById('shareScore');
     
-    // Load previously saved name
     const savedName = localStorage.getItem('playerName') || '';
     nameInput.value = savedName;
     
     scoreDisplay.textContent = score;
     modal.style.display = 'flex';
     
-    // Enable the submit button for the new game over
     submitButton.disabled = false;
     submitButton.textContent = 'Submit Score';
     
@@ -164,7 +149,6 @@ function submitScore() {
         submitButton.disabled = true;
         submitButton.textContent = 'Submitting...';
         
-        // Save name for future games
         localStorage.setItem('playerName', name);
         
         const newScore = {
@@ -175,23 +159,19 @@ function submitScore() {
         
         try {
             if (window.firebaseInitialized && firebase) {
-                // Use Firebase if available
                 firebase.database().ref('leaderboard').push(newScore)
                     .then(() => {
                         submitButton.textContent = 'Submitted!';
                     })
                     .catch((error) => {
                         console.error("Firebase error:", error);
-                        // Fallback to localStorage
                         saveToLocalStorage(newScore);
                     });
             } else {
-                // Use localStorage if Firebase is not available
                 saveToLocalStorage(newScore);
             }
         } catch (error) {
             console.error('Error submitting score:', error);
-            // Fallback to localStorage
             saveToLocalStorage(newScore);
         }
     } else {
@@ -199,11 +179,10 @@ function submitScore() {
     }
 }
 
-// Helper function to save to localStorage
 function saveToLocalStorage(newScore) {
     leaderboard.push(newScore);
     leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 10); // Keep top 10
+    leaderboard = leaderboard.slice(0, 10);
     localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
     updateLeaderboardDisplay();
     const submitButton = document.getElementById('submitScore');
@@ -218,12 +197,10 @@ function shareScore() {
 }
 
 function startNewGame() {
-    // Cancel existing game loop if any
     if (gameLoop) {
         cancelAnimationFrame(gameLoop);
     }
     
-    // Reset game state
     board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
     score = 0;
     comboCount = 0;
@@ -231,34 +208,26 @@ function startNewGame() {
     gameOver = false;
     dropInterval = 1000 / gameSpeed;
     
-    // Reset the submit button for next game over
     const submitButton = document.getElementById('submitScore');
     submitButton.disabled = false;
     submitButton.textContent = 'Submit Score';
     
-    // Hide the game over modal
     const modal = document.getElementById('gameOverModal');
     modal.style.display = 'none';
     
-    // Create new piece and start game loop
     currentPiece = createPiece();
     nextPiece = createPiece();
     
-    // Update speed display
     document.querySelector('.speed-indicator').textContent = `Speed: ${gameSpeed.toFixed(1)}x`;
     
-    // Reset drop interval
     gameLoop = requestAnimationFrame(update);
     
-    // Initialize mobile controls
     initializeMobileControls();
 }
 
 function increaseSpeed() {
     gameSpeed += 0.1;
     document.querySelector('.speed-indicator').textContent = `Speed: ${gameSpeed.toFixed(1)}x`;
-    
-    // Update drop interval
     dropInterval = 1000 / gameSpeed;
 }
 
@@ -274,58 +243,24 @@ class Animation {
     }
 
     update() {
-        if (this.type === 'line') {
-            this.life -= 0.02;
-            this.scale += 0.05;
-        } else if (this.type === 'color') {
-            this.life -= 0.02;
-            this.scale += 0.05;
-        } else {
-            this.life -= 0.02;
-            this.scale += 0.05;
-        }
+        this.life -= 0.02;
+        this.scale += 0.05;
         return this.life > 0;
     }
 
     draw(ctx) {
         ctx.save();
-        if (this.type === 'line') {
-            ctx.globalAlpha = this.life;
-            ctx.translate(this.x, this.y);
-            ctx.scale(this.scale, this.scale);
-            ctx.font = "bold 48px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
-            ctx.strokeText(this.text, 0, 0);
-            ctx.fillStyle = this.color || '#FFD700';
-            ctx.fillText(this.text, 0, 0);
-        } else if (this.type === 'color') {
-            ctx.globalAlpha = this.life;
-            ctx.translate(this.x, this.y);
-            ctx.scale(this.scale, this.scale);
-            ctx.font = "bold 48px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
-            ctx.strokeText(this.text, 0, 0);
-            ctx.fillStyle = this.color || '#FFD700';
-            ctx.fillText(this.text, 0, 0);
-        } else {
-            ctx.globalAlpha = this.life;
-            ctx.translate(this.x, this.y);
-            ctx.scale(this.scale, this.scale);
-            ctx.font = "bold 48px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
-            ctx.strokeText(this.text, 0, 0);
-            ctx.fillStyle = this.color || '#FFD700';
-            ctx.fillText(this.text, 0, 0);
-        }
+        ctx.globalAlpha = this.life;
+        ctx.translate(this.x, this.y);
+        ctx.scale(this.scale, this.scale);
+        ctx.font = "bold 48px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(this.text, 0, 0);
+        ctx.fillStyle = this.color || '#FFD700';
+        ctx.fillText(this.text, 0, 0);
         ctx.restore();
     }
 }
@@ -336,12 +271,11 @@ function createPiece() {
         x: Math.floor(COLS / 2) - Math.floor(randomShape.shape[0].length / 2),
         y: 0,
         shape: randomShape.shape,
-        colors: [], // Array to store colors for each block
+        colors: [],
         name: randomShape.name,
-        rotationState: 0  // Initialize rotation state
+        rotationState: 0
     };
 
-    // Create a color matrix matching the shape
     piece.colors = randomShape.shape.map(row => 
         row.map(cell => 
             cell ? COLORS[Math.floor(Math.random() * COLORS.length)] : null
@@ -364,7 +298,6 @@ function drawBoard() {
                 ctx.lineWidth = 2;
                 ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                 
-                // Add shine effect to board pieces
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx.beginPath();
                 ctx.moveTo(x * BLOCK_SIZE, y * BLOCK_SIZE);
@@ -396,7 +329,6 @@ function drawPiece(piece) {
                     BLOCK_SIZE
                 );
                 
-                // Add a shine effect
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx.beginPath();
                 ctx.moveTo((piece.x + x) * BLOCK_SIZE, (piece.y + y) * BLOCK_SIZE);
@@ -412,7 +344,6 @@ function merge() {
     currentPiece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
-                // Store the color index + 1 as the value, and the actual color in a separate array
                 const colorIndex = COLORS.indexOf(currentPiece.colors[y][x]) + 1;
                 board[currentPiece.y + y][currentPiece.x + x] = colorIndex;
             }
@@ -440,15 +371,14 @@ function moveDown() {
         currentPiece.y++;
     } else {
         merge();
-        increaseSpeed(); // Increase speed for each new piece
+        increaseSpeed();
         if (checkForMatches()) {
-            score += comboCount * 50; // Bonus points for combos
+            score += comboCount * 50;
         }
         currentPiece = nextPiece;
         nextPiece = createPiece();
         
         if (!isValidMove(currentPiece, 0, 0)) {
-            // Game over
             gameOver = true;
             cancelAnimationFrame(gameLoop);
             showGameOverModal();
@@ -458,7 +388,6 @@ function moveDown() {
 
 function moveLeft() {
     if (gameOver) return;
-    
     if (isValidMove(currentPiece, -1, 0)) {
         currentPiece.x--;
     }
@@ -466,7 +395,6 @@ function moveLeft() {
 
 function moveRight() {
     if (gameOver) return;
-    
     if (isValidMove(currentPiece, 1, 0)) {
         currentPiece.x++;
     }
@@ -478,7 +406,6 @@ async function checkForMatches() {
     let totalClears = 0;
     let hasChainReaction = false;
     
-    // Only increment combo on first match if it's not a chain reaction
     if (matches.length > 0 && !hasChainReaction) {
         comboCount++;
     }
@@ -487,48 +414,38 @@ async function checkForMatches() {
         hasChainReaction = true;
         totalClears += matches.length;
         
-        // Increment combo for each new set of matches in the chain
         if (matches.length > 0) {
             comboCount++;
         }
         
-        // Clear current matches
         for (let match of matches) {
-            // Add sparkle effects at match positions
             for (let pos of match.positions) {
                 addSparkleEffect(pos.x * BLOCK_SIZE + BLOCK_SIZE/2, 
-                               pos.y * BLOCK_SIZE + BLOCK_SIZE/2, 
-                               board[pos.y][pos.x]);
+                                   pos.y * BLOCK_SIZE + BLOCK_SIZE/2, 
+                                   board[pos.y][pos.x]);
             }
             
-            // Handle special clears based on match length and type
             if (match.type === 'color') {
-                // Color clear - all blocks of the same color
                 const colorValue = board[match.positions[0].y][match.positions[0].x];
                 match.positions = clearAllBlocksOfColor(colorValue);
                 createColorClearAnimation();
             } else if (match.type === 'line') {
-                // Line clear - entire row or column
                 const firstPos = match.positions[0];
                 const secondPos = match.positions[1];
                 
                 if (firstPos.y === secondPos.y) {
-                    // Horizontal line
                     match.positions = clearRow(firstPos.y);
                     createLineClearAnimation(true);
                 } else {
-                    // Vertical line
                     match.positions = clearColumn(firstPos.x);
                     createLineClearAnimation(false);
                 }
             }
             
-            // Clear matched blocks
             for (let pos of match.positions) {
                 board[pos.y][pos.x] = 0;
             }
             
-            // Update score based on match type and chain multiplier
             let baseScore = 0;
             switch (match.type) {
                 case 'color':
@@ -541,19 +458,15 @@ async function checkForMatches() {
                     baseScore = 100;
             }
             
-            // Apply chain multiplier and combo bonus
             score += (baseScore * chainMultiplier) + (comboCount * 50);
         }
         
-        // Create combo animation if we have multiple clears
         if (totalClears > 1) {
             createComboAnimation(matches.length, totalClears);
         }
         
-        // Wait for blocks to clear animation
         await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Make blocks fall
         let blocksFell = false;
         do {
             blocksFell = false;
@@ -571,28 +484,20 @@ async function checkForMatches() {
             }
         } while (blocksFell);
         
-        // Increase chain multiplier for subsequent matches
         chainMultiplier++;
         
-        // Check for new matches after blocks have fallen
         matches = findMatches();
         
-        // If new matches found, add a visual indicator
         if (matches.length > 0) {
-            // Display chain combo text
-            const ctx = canvas.getContext('2d');
             ctx.save();
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 24px Arial';
             ctx.fillText(`Chain x${chainMultiplier}!`, canvas.width/2 - 50, canvas.height/2);
             ctx.restore();
-            
-            // Wait a moment to show the chain notification
             await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
     
-    // Only reset combo count if no matches were found at all
     if (!hasChainReaction) {
         comboCount = 0;
     }
@@ -600,7 +505,6 @@ async function checkForMatches() {
     return matches.length > 0;
 }
 
-// Clear all blocks of the same color
 function clearAllBlocksOfColor(colorValue) {
     const positions = [];
     for (let y = 0; y < ROWS; y++) {
@@ -608,8 +512,8 @@ function clearAllBlocksOfColor(colorValue) {
             if (board[y][x] === colorValue) {
                 positions.push({ x, y });
                 addSparkleEffect(x * BLOCK_SIZE + BLOCK_SIZE/2, 
-                               y * BLOCK_SIZE + BLOCK_SIZE/2, 
-                               colorValue);
+                                   y * BLOCK_SIZE + BLOCK_SIZE/2, 
+                                   board[y][x]);
             }
         }
     }
@@ -620,12 +524,10 @@ function findMatches() {
     const matches = [];
     const visited = new Set();
 
-    // Helper function to check if a position has been visited
     const getKey = (x, y) => `${x},${y}`;
     const isVisited = (x, y) => visited.has(getKey(x, y));
     const markVisited = (x, y) => visited.add(getKey(x, y));
 
-    // Check horizontal matches
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS - 2; x++) {
             if (!isVisited(x, y) && board[y][x]) {
@@ -633,7 +535,6 @@ function findMatches() {
                 let matchLength = 1;
                 let currentX = x + 1;
 
-                // Count consecutive matching blocks
                 while (currentX < COLS && board[y][currentX] === colorValue) {
                     matchLength++;
                     currentX++;
@@ -655,7 +556,6 @@ function findMatches() {
         }
     }
 
-    // Check vertical matches
     for (let x = 0; x < COLS; x++) {
         for (let y = 0; y < ROWS - 2; y++) {
             if (!isVisited(x, y) && board[y][x]) {
@@ -663,7 +563,6 @@ function findMatches() {
                 let matchLength = 1;
                 let currentY = y + 1;
 
-                // Count consecutive matching blocks
                 while (currentY < ROWS && board[currentY][x] === colorValue) {
                     matchLength++;
                     currentY++;
@@ -819,9 +718,12 @@ function drawSparkles() {
     });
 }
 
+let lastTime = 0;
+let dropCounter = 0;
+
 function update(time) {
     if (gameOver) {
-        return; // Stop the game loop if game is over
+        return;
     }
 
     const deltaTime = time - lastTime;
@@ -838,10 +740,8 @@ function update(time) {
 }
 
 function draw() {
-    const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw background grid
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -852,16 +752,13 @@ function draw() {
         }
     }
     
-    // Draw the game board and current piece
     drawBoard();
     if (currentPiece) {
         drawPiece(currentPiece);
     }
     
-    // Draw the preview piece
     drawPreviewPiece();
     
-    // Update and draw animations
     for (let i = activeAnimations.length - 1; i >= 0; i--) {
         const anim = activeAnimations[i];
         anim.life -= 0.02;
@@ -883,50 +780,37 @@ function draw() {
         }
     }
     
-    // Update and draw sparkles
     updateSparkles();
     drawSparkles();
     
-    // Draw score with shadow
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'left';
-    
-    // Draw score shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillText(`Score: ${score}`, 12, 32);
-    // Draw score
     ctx.fillStyle = 'white';
     ctx.fillText(`Score: ${score}`, 10, 30);
     
-    // Draw combo counter if active
     if (comboCount > 1) {
-        // Draw combo shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillText(`Combo x${comboCount}!`, 12, 62);
-        // Draw combo
         ctx.fillStyle = '#FFD700';
         ctx.fillText(`Combo x${comboCount}!`, 10, 60);
     }
     
-    // Draw speed indicator
     document.querySelector('.speed-indicator').textContent = `Speed: ${gameSpeed.toFixed(1)}x`;
 }
 
 function drawPreviewPiece() {
     if (!nextPiece) return;
     
-    // Clear the preview canvas
     previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
     
-    // Calculate piece dimensions
     const pieceWidth = nextPiece.shape[0].length * BLOCK_SIZE;
     const pieceHeight = nextPiece.shape.length * BLOCK_SIZE;
     
-    // Calculate center position
     const offsetX = (previewCanvas.width - pieceWidth) / 2;
     const offsetY = (previewCanvas.height - pieceHeight) / 2;
     
-    // Draw the preview piece
     nextPiece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
@@ -946,29 +830,24 @@ function initializeMobileControls() {
     const dPad = document.querySelector('.d-pad');
     if (!dPad) return;
     
-    // Prevent default touch behaviors
     document.addEventListener('touchmove', function(e) {
         if (e.target.closest('.d-pad')) {
             e.preventDefault();
         }
     }, { passive: false });
     
-    // Handle button touches
     const buttons = dPad.querySelectorAll('button');
     buttons.forEach(button => {
-        // Handle touch start
         button.addEventListener('touchstart', function(e) {
             e.preventDefault();
             const key = this.getAttribute('data-key');
             handleKeyEvent(key);
         });
         
-        // Handle touch end
         button.addEventListener('touchend', function(e) {
             e.preventDefault();
         });
         
-        // Handle mouse events for testing on desktop
         button.addEventListener('mousedown', function(e) {
             const key = this.getAttribute('data-key');
             handleKeyEvent(key);
@@ -995,56 +874,75 @@ function handleKeyEvent(key) {
     }
 }
 
+// Custom key repeat logic.
+const keyRepeatInterval = 100; // in ms
+const keysHeld = {};
+
 document.addEventListener('keydown', event => {
     if (gameOver) return;
-    handleKeyEvent(event.key);
+    const key = event.key;
+    
+    if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(key)) {
+        if (!keysHeld[key]) {
+            keysHeld[key] = true;
+            handleKeyEvent(key);
+            keysHeld[key + '_interval'] = setInterval(() => {
+                handleKeyEvent(key);
+            }, keyRepeatInterval);
+        }
+    } else if (key === 'ArrowUp') {
+        handleKeyEvent(key);
+    }
 });
 
-// Prevent arrow key scrolling
+document.addEventListener('keyup', event => {
+    const key = event.key;
+    if (keysHeld[key]) {
+        keysHeld[key] = false;
+        if (keysHeld[key + '_interval']) {
+            clearInterval(keysHeld[key + '_interval']);
+            delete keysHeld[key + '_interval'];
+        }
+    }
+});
+
+// Prevent arrow key scrolling.
 window.addEventListener('keydown', function(e) {
-    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+    if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
         e.preventDefault();
     }
 }, false);
 
 function rotatePiece() {
-    // Save current state so we can revert if needed.
     const oldShape = currentPiece.shape;
     const oldColors = currentPiece.colors;
     const oldX = currentPiece.x;
     const oldY = currentPiece.y;
   
-    // Generic 90° clockwise rotation.
     const rotatedShape = [];
     const rotatedColors = [];
     for (let i = 0; i < currentPiece.shape[0].length; i++) {
-      rotatedShape.push([]);
-      rotatedColors.push([]);
-      for (let j = currentPiece.shape.length - 1; j >= 0; j--) {
-        rotatedShape[i].push(currentPiece.shape[j][i]);
-        rotatedColors[i].push(currentPiece.colors[j][i]);
-      }
+        rotatedShape.push([]);
+        rotatedColors.push([]);
+        for (let j = currentPiece.shape.length - 1; j >= 0; j--) {
+            rotatedShape[i].push(currentPiece.shape[j][i]);
+            rotatedColors[i].push(currentPiece.colors[j][i]);
+        }
     }
   
-    // Apply the rotation.
     currentPiece.shape = rotatedShape;
     currentPiece.colors = rotatedColors;
   
-    // For the I-piece, adjust the position offset (kick) after rotation.
     if (currentPiece.name === 'I') {
-      // Check if the new orientation is vertical or horizontal.
       if (rotatedShape.length > rotatedShape[0].length) {
-        // Now vertical: originally horizontal [1,2,3,4] becomes vertical [1,2,3,4]
         currentPiece.x = oldX + 1;
         currentPiece.y = oldY - 1;
       } else {
-        // Now horizontal: originally vertical becomes horizontal [4,3,2,1]
         currentPiece.x = oldX - 1;
         currentPiece.y = oldY + 1;
       }
     }
   
-    // Revert rotation if the move is invalid.
     if (!isValidMove(currentPiece, 0, 0)) {
       currentPiece.shape = oldShape;
       currentPiece.colors = oldColors;
@@ -1052,41 +950,33 @@ function rotatePiece() {
       currentPiece.y = oldY;
       console.log('Rotation reverted – invalid move');
     }
-  }  
-  
+}
 
-let lastTime = 0;
-let dropCounter = 0;
+let lastTimeGlobal = 0;
+let dropCounterGlobal = 0;
 
-// Clear a full row
 function clearRow(y) {
     const positions = [];
     for (let x = 0; x < COLS; x++) {
         if (board[y][x] !== 0) {
             positions.push({ x, y });
-            addSparkleEffect(x * BLOCK_SIZE + BLOCK_SIZE/2, 
-                           y * BLOCK_SIZE + BLOCK_SIZE/2, 
-                           board[y][x]);
+            addSparkleEffect(x * BLOCK_SIZE + BLOCK_SIZE/2, y * BLOCK_SIZE + BLOCK_SIZE/2, board[y][x]);
         }
     }
     return positions;
 }
 
-// Clear a full column
 function clearColumn(x) {
     const positions = [];
     for (let y = 0; y < ROWS; y++) {
         if (board[y][x] !== 0) {
             positions.push({ x, y });
-            addSparkleEffect(x * BLOCK_SIZE + BLOCK_SIZE/2, 
-                           y * BLOCK_SIZE + BLOCK_SIZE/2, 
-                           board[y][x]);
+            addSparkleEffect(x * BLOCK_SIZE + BLOCK_SIZE/2, y * BLOCK_SIZE + BLOCK_SIZE/2, board[y][x]);
         }
     }
     return positions;
 }
 
-// Create line clear animation
 function createLineClearAnimation(isHorizontal) {
     const text = {
         x: canvas.width / 2,
