@@ -12,9 +12,9 @@ const COLORS = [
     '#00FF00', // Bright Green
     '#0000FF', // Blue
     '#FFD700', // Gold
-    '#FF1493', // Deep Pink
-    '#00FFFF', // Cyan
-    '#FF8C00'  // Dark Orange
+    // '#FF1493', // Deep Pink
+    // '#00FFFF', // Cyan
+    // '#FF8C00'  // Dark Orange
 ];
 
 // Define all possible Tetris pieces
@@ -270,47 +270,62 @@ class Animation {
         this.color = color;
         this.text = text;
         this.life = 1;
-        this.scale = 0;
-        this.rotation = 0;
+        this.scale = 1;
     }
 
     update() {
-        if (this.type === 'combo') {
-            this.y -= 2;
-            this.scale = Math.min(this.scale + 0.2, 1);
+        if (this.type === 'line') {
             this.life -= 0.02;
-        } else if (this.type === 'tetris') {
-            this.rotation += 0.1;
-            this.scale = Math.min(this.scale + 0.15, 1);
-            this.life -= 0.015;
+            this.scale += 0.05;
+        } else if (this.type === 'color') {
+            this.life -= 0.02;
+            this.scale += 0.05;
+        } else {
+            this.life -= 0.02;
+            this.scale += 0.05;
         }
         return this.life > 0;
     }
 
     draw(ctx) {
         ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
-        ctx.scale(this.scale, this.scale);
-        
-        if (this.type === 'combo') {
-            ctx.fillStyle = `rgba(255, 215, 0, ${this.life})`;
-            ctx.strokeStyle = `rgba(255, 140, 0, ${this.life})`;
+        if (this.type === 'line') {
+            ctx.globalAlpha = this.life;
+            ctx.translate(this.x, this.y);
+            ctx.scale(this.scale, this.scale);
+            ctx.font = "bold 48px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.strokeStyle = '#000000';
             ctx.lineWidth = 3;
-            ctx.font = 'bold 40px Arial';
-            ctx.textAlign = 'center';
             ctx.strokeText(this.text, 0, 0);
+            ctx.fillStyle = this.color || '#FFD700';
             ctx.fillText(this.text, 0, 0);
-        } else if (this.type === 'tetris') {
-            ctx.fillStyle = `rgba(0, 255, 255, ${this.life})`;
-            ctx.strokeStyle = `rgba(255, 255, 255, ${this.life})`;
+        } else if (this.type === 'color') {
+            ctx.globalAlpha = this.life;
+            ctx.translate(this.x, this.y);
+            ctx.scale(this.scale, this.scale);
+            ctx.font = "bold 48px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.strokeStyle = '#000000';
             ctx.lineWidth = 3;
-            ctx.font = 'bold 50px Arial';
-            ctx.textAlign = 'center';
-            ctx.strokeText('TETRIS!', 0, 0);
-            ctx.fillText('TETRIS!', 0, 0);
+            ctx.strokeText(this.text, 0, 0);
+            ctx.fillStyle = this.color || '#FFD700';
+            ctx.fillText(this.text, 0, 0);
+        } else {
+            ctx.globalAlpha = this.life;
+            ctx.translate(this.x, this.y);
+            ctx.scale(this.scale, this.scale);
+            ctx.font = "bold 48px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(this.text, 0, 0);
+            ctx.fillStyle = this.color || '#FFD700';
+            ctx.fillText(this.text, 0, 0);
         }
-        
         ctx.restore();
     }
 }
@@ -506,8 +521,6 @@ async function checkForMatches() {
                     match.positions = clearColumn(firstPos.x);
                     createLineClearAnimation(false);
                 }
-            } else if (match.type === 'tetris') {
-                createTetrisAnimation(match.positions[0].y);
             }
             
             // Clear matched blocks
@@ -520,9 +533,6 @@ async function checkForMatches() {
             switch (match.type) {
                 case 'color':
                     baseScore = 500;
-                    break;
-                case 'tetris':
-                    baseScore = 800;
                     break;
                 case 'line':
                     baseScore = 300;
@@ -675,69 +685,7 @@ function findMatches() {
         }
     }
 
-    // Check for Tetris line matches
-    for (let y = 0; y < ROWS; y++) {
-        if (isLineFull(y)) {
-            const match = {
-                type: 'tetris',
-                positions: []
-            };
-            for (let x = 0; x < COLS; x++) {
-                match.positions.push({ x, y });
-            }
-            matches.push(match);
-        }
-    }
-
     return matches;
-}
-
-function isLineFull(y) {
-    return board[y].every(cell => cell !== 0);
-}
-
-function clearTetrisLine(y) {
-    // Create a white flash effect
-    for (let x = 0; x < COLS; x++) {
-        createTetrisSparkles(x * BLOCK_SIZE, y * BLOCK_SIZE);
-    }
-    
-    // Clear the line
-    for (let y2 = y; y2 > 0; y2--) {
-        for (let x = 0; x < COLS; x++) {
-            board[y2][x] = board[y2-1][x];
-        }
-    }
-    // Clear top line
-    for (let x = 0; x < COLS; x++) {
-        board[0][x] = 0;
-    }
-}
-
-function createTetrisSparkles(x, y) {
-    const colors = ['#00FFFF', '#FFFFFF', '#40E0D0'];
-    for (let i = 0; i < 8; i++) {
-        sparkles.push({
-            x: x + BLOCK_SIZE/2,
-            y: y + BLOCK_SIZE/2,
-            vx: (Math.random() - 0.5) * 15,
-            vy: (Math.random() - 0.5) * 15,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            life: 1,
-            size: 3 + Math.random() * 3
-        });
-    }
-}
-
-function createTetrisAnimation(y) {
-    const text = {
-        x: canvas.width / 2,
-        y: y * BLOCK_SIZE + BLOCK_SIZE / 2,
-        text: "TETRIS!",
-        life: 1,
-        scale: 1
-    };
-    activeAnimations.push(text);
 }
 
 function createComboAnimation(matchSize, totalClears) {
