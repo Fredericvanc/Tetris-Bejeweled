@@ -1008,106 +1008,52 @@ window.addEventListener('keydown', function(e) {
 }, false);
 
 function rotatePiece() {
-    // Special handling for I-piece (4 blocks in a line)
-    if (currentPiece.name === 'I') {
-        console.log('Before rotation - State:', currentPiece.rotationState);
-        console.log('Before rotation - Colors:', JSON.stringify(currentPiece.colors));
-        
-        // Update rotation state
-        currentPiece.rotationState = ((currentPiece.rotationState || 0) + 1) % 4;
-        
-        // Get current colors in a flat array
-        const colors = currentPiece.shape.length === 1 
-            ? [...currentPiece.colors[0]]  // Horizontal
-            : currentPiece.colors.map(row => row[0]);  // Vertical
-            
-        console.log('Current colors array:', colors);
-        
-        let newShape, newColors;
-        
-        switch (currentPiece.rotationState) {
-            case 0: // Horizontal: [A,B,C,D]
-                newShape = [[1, 1, 1, 1]];
-                newColors = [[colors[0], colors[1], colors[2], colors[3]]];
-                break;
-            case 1: // Vertical: [A] down
-                newShape = [[1], [1], [1], [1]];
-                newColors = [[colors[0]], [colors[1]], [colors[2]], [colors[3]]];
-                break;
-            case 2: // Horizontal: [D,C,B,A]
-                newShape = [[1, 1, 1, 1]];
-                newColors = [[colors[3], colors[2], colors[1], colors[0]]];
-                break;
-            case 3: // Vertical: [D] down
-                newShape = [[1], [1], [1], [1]];
-                newColors = [[colors[3]], [colors[2]], [colors[1]], [colors[0]]];
-                break;
-        }
-        
-        console.log('After rotation - State:', currentPiece.rotationState);
-        console.log('After rotation - New colors:', JSON.stringify(newColors));
-        
-        // Calculate position adjustment
-        let newX = currentPiece.x;
-        let newY = currentPiece.y;
-        
-        const isGoingVertical = newShape.length > 1;
-        if (isGoingVertical) {
-            newX = currentPiece.x + 1;
-            newY = currentPiece.y - 1;
-        } else {
-            newX = currentPiece.x - 1;
-            newY = currentPiece.y + 1;
-        }
-        
-        // Store old state
-        const oldShape = currentPiece.shape;
-        const oldColors = currentPiece.colors;
-        const oldX = currentPiece.x;
-        const oldY = currentPiece.y;
-        const oldRotationState = currentPiece.rotationState;
-        
-        // Apply new state
-        currentPiece.shape = newShape;
-        currentPiece.colors = newColors;
-        currentPiece.x = newX;
-        currentPiece.y = newY;
-        
-        // Revert if invalid
-        if (!isValidMove(currentPiece, 0, 0)) {
-            currentPiece.shape = oldShape;
-            currentPiece.colors = oldColors;
-            currentPiece.x = oldX;
-            currentPiece.y = oldY;
-            currentPiece.rotationState = oldRotationState;
-            console.log('Rotation reverted - invalid move');
-        }
-    } else {
-        // Normal rotation for other pieces
-        const rotated = [];
-        const rotatedColors = [];
-        
-        for (let i = 0; i < currentPiece.shape[0].length; i++) {
-            rotated.push([]);
-            rotatedColors.push([]);
-            for (let j = currentPiece.shape.length - 1; j >= 0; j--) {
-                rotated[i].push(currentPiece.shape[j][i]);
-                rotatedColors[i].push(currentPiece.colors[j][i]);
-            }
-        }
-        
-        const oldShape = currentPiece.shape;
-        const oldColors = currentPiece.colors;
-        
-        currentPiece.shape = rotated;
-        currentPiece.colors = rotatedColors;
-        
-        if (!isValidMove(currentPiece, 0, 0)) {
-            currentPiece.shape = oldShape;
-            currentPiece.colors = oldColors;
-        }
+    // Save current state so we can revert if needed.
+    const oldShape = currentPiece.shape;
+    const oldColors = currentPiece.colors;
+    const oldX = currentPiece.x;
+    const oldY = currentPiece.y;
+  
+    // Generic 90° clockwise rotation.
+    const rotatedShape = [];
+    const rotatedColors = [];
+    for (let i = 0; i < currentPiece.shape[0].length; i++) {
+      rotatedShape.push([]);
+      rotatedColors.push([]);
+      for (let j = currentPiece.shape.length - 1; j >= 0; j--) {
+        rotatedShape[i].push(currentPiece.shape[j][i]);
+        rotatedColors[i].push(currentPiece.colors[j][i]);
+      }
     }
-}
+  
+    // Apply the rotation.
+    currentPiece.shape = rotatedShape;
+    currentPiece.colors = rotatedColors;
+  
+    // For the I-piece, adjust the position offset (kick) after rotation.
+    if (currentPiece.name === 'I') {
+      // Check if the new orientation is vertical or horizontal.
+      if (rotatedShape.length > rotatedShape[0].length) {
+        // Now vertical: originally horizontal [1,2,3,4] becomes vertical [1,2,3,4]
+        currentPiece.x = oldX + 1;
+        currentPiece.y = oldY - 1;
+      } else {
+        // Now horizontal: originally vertical becomes horizontal [4,3,2,1]
+        currentPiece.x = oldX - 1;
+        currentPiece.y = oldY + 1;
+      }
+    }
+  
+    // Revert rotation if the move is invalid.
+    if (!isValidMove(currentPiece, 0, 0)) {
+      currentPiece.shape = oldShape;
+      currentPiece.colors = oldColors;
+      currentPiece.x = oldX;
+      currentPiece.y = oldY;
+      console.log('Rotation reverted – invalid move');
+    }
+  }  
+  
 
 let lastTime = 0;
 let dropCounter = 0;
