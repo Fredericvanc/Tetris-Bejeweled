@@ -379,9 +379,13 @@ function moveDown() {
     } else {
         merge();
         increaseSpeed();
-        if (checkForMatches()) {
-            score += comboCount * 50;
-        }
+        // Check for matches (including new square explosions)
+        // Note: the returned boolean is not used here
+        checkForMatches().then((found) => {
+            if (found) {
+                score += comboCount * 50;
+            }
+        });
         currentPiece = nextPiece;
         nextPiece = createPiece();
         
@@ -407,6 +411,14 @@ function moveRight() {
     }
 }
 
+// Helper: assign priority to match types
+function getMatchPriority(type) {
+    if (type === 'color') return 4;
+    if (type === 'line') return 3;
+    if (type === 'square') return 2;
+    return 1; // normal (3 in a row)
+}
+
 async function checkForMatches() {
     let matches = findMatches();
     let chainMultiplier = 1;
@@ -417,6 +429,9 @@ async function checkForMatches() {
         comboCount++;
     }
     
+    // Sort matches by our priority (4: color > 3: line > 2: square > 1: normal)
+    matches.sort((a, b) => getMatchPriority(b.type) - getMatchPriority(a.type));
+    
     while (matches.length > 0) {
         hasChainReaction = true;
         totalClears += matches.length;
@@ -426,31 +441,44 @@ async function checkForMatches() {
         }
         
         for (let match of matches) {
-            for (let pos of match.positions) {
-                addSparkleEffect(pos.x * BLOCK_SIZE + BLOCK_SIZE/2, 
-                                   pos.y * BLOCK_SIZE + BLOCK_SIZE/2, 
-                                   board[pos.y][pos.x]);
-            }
-            
-            if (match.type === 'color') {
-                const colorValue = board[match.positions[0].y][match.positions[0].x];
-                match.positions = clearAllBlocksOfColor(colorValue);
-                createColorClearAnimation();
-            } else if (match.type === 'line') {
-                const firstPos = match.positions[0];
-                const secondPos = match.positions[1];
+            if (match.type === 'square') {
+                // For a square match, clear the square plus all adjacent blocks.
+                let explosionPositions = getSquareExplosionPositions(match.positions);
+                // Add sparkle effect for each explosion cell
+                explosionPositions.forEach(pos => {
+                    addSparkleEffect(pos.x * BLOCK_SIZE + BLOCK_SIZE/2, pos.y * BLOCK_SIZE + BLOCK_SIZE/2, board[pos.y][pos.x]);
+                });
+                createSquareExplosionAnimation(match.positions);
+                explosionPositions.forEach(pos => {
+                    board[pos.y][pos.x] = 0;
+                });
+            } else {
+                // For other matches, add sparkle effects on matched blocks.
+                match.positions.forEach(pos => {
+                    addSparkleEffect(pos.x * BLOCK_SIZE + BLOCK_SIZE/2, pos.y * BLOCK_SIZE + BLOCK_SIZE/2, board[pos.y][pos.x]);
+                });
                 
-                if (firstPos.y === secondPos.y) {
-                    match.positions = clearRow(firstPos.y);
-                    createLineClearAnimation(true);
-                } else {
-                    match.positions = clearColumn(firstPos.x);
-                    createLineClearAnimation(false);
+                if (match.type === 'color') {
+                    const colorValue = board[match.positions[0].y][match.positions[0].x];
+                    match.positions = clearAllBlocksOfColor(colorValue);
+                    createColorClearAnimation();
+                } else if (match.type === 'line') {
+                    const firstPos = match.positions[0];
+                    const secondPos = match.positions[1];
+                    
+                    if (firstPos.y === secondPos.y) {
+                        match.positions = clearRow(firstPos.y);
+                        createLineClearAnimation(true);
+                    } else {
+                        match.positions = clearColumn(firstPos.x);
+                        createLineClearAnimation(false);
+                    }
                 }
-            }
-            
-            for (let pos of match.positions) {
-                board[pos.y][pos.x] = 0;
+                
+                // Clear the blocks for these matches.
+                match.positions.forEach(pos => {
+                    board[pos.y][pos.x] = 0;
+                });
             }
             
             let baseScore = 0;
@@ -460,6 +488,9 @@ async function checkForMatches() {
                     break;
                 case 'line':
                     baseScore = 300;
+                    break;
+                case 'square':
+                    baseScore = 200;
                     break;
                 default:
                     baseScore = 100;
@@ -494,7 +525,6 @@ async function checkForMatches() {
         chainMultiplier++;
         
         matches = findMatches();
-        
         if (matches.length > 0) {
             ctx.save();
             ctx.fillStyle = '#FFD700';
@@ -535,6 +565,7 @@ function findMatches() {
     const isVisited = (x, y) => visited.has(getKey(x, y));
     const markVisited = (x, y) => visited.add(getKey(x, y));
 
+    // Check for horizontal matches
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS - 2; x++) {
             if (!isVisited(x, y) && board[y][x]) {
@@ -563,6 +594,7 @@ function findMatches() {
         }
     }
 
+    // Check for vertical matches
     for (let x = 0; x < COLS; x++) {
         for (let y = 0; y < ROWS - 2; y++) {
             if (!isVisited(x, y) && board[y][x]) {
@@ -587,6 +619,27 @@ function findMatches() {
                     }
                     matches.push(match);
                 }
+            }
+        }
+    }
+    
+    // NEW: Check for 2x2 square matches
+    for (let y = 0; y < ROWS - 1; y++) {
+        for (let x = 0; x < COLS - 1; x++) {
+            const val = board[y][x];
+            if (val !== 0 &&
+                board[y][x+1] === val &&
+                board[y+1][x] === val &&
+                board[y+1][x+1] === val) {
+                matches.push({
+                    type: 'square',
+                    positions: [
+                        { x: x, y: y },
+                        { x: x+1, y: y },
+                        { x: x, y: y+1 },
+                        { x: x+1, y: y+1 }
+                    ]
+                });
             }
         }
     }
@@ -624,6 +677,49 @@ function createColorClearAnimation() {
         color: '#FFD700'
     };
     activeAnimations.push(text);
+}
+
+// NEW: Return all positions in the explosion area (the square and adjacent cells)
+function getSquareExplosionPositions(squarePositions) {
+    const positionsSet = new Set();
+    squarePositions.forEach(pos => {
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const nx = pos.x + dx;
+                const ny = pos.y + dy;
+                if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                    positionsSet.add(nx + ',' + ny);
+                }
+            }
+        }
+    });
+    const positions = [];
+    positionsSet.forEach(key => {
+        const [x, y] = key.split(',').map(Number);
+        positions.push({ x, y });
+    });
+    return positions;
+}
+
+// NEW: Create an explosion animation for square matches.
+function createSquareExplosionAnimation(squarePositions) {
+    // Calculate the center of the square (average of positions)
+    let sumX = 0, sumY = 0;
+    squarePositions.forEach(pos => {
+        sumX += pos.x;
+        sumY += pos.y;
+    });
+    const centerX = (sumX / squarePositions.length) * BLOCK_SIZE + BLOCK_SIZE/2;
+    const centerY = (sumY / squarePositions.length) * BLOCK_SIZE + BLOCK_SIZE/2;
+    const animation = {
+        x: centerX,
+        y: centerY,
+        text: "SQUARE EXPLOSION!",
+        life: 1,
+        scale: 1,
+        color: '#FF4500'
+    };
+    activeAnimations.push(animation);
 }
 
 function addSparkleEffect(x, y, color) {
