@@ -158,24 +158,36 @@ function submitScore() {
             score: score,
             date: new Date().toLocaleDateString()
         };
-        
-        try {
-            if (window.firebaseInitialized && firebase) {
-                firebase.database().ref('leaderboard').push(newScore)
-                    .then(() => {
-                        submitButton.textContent = 'Submitted!';
-                    })
-                    .catch((error) => {
-                        console.error("Firebase error:", error);
+
+        // Execute reCAPTCHA verification
+        grecaptcha.execute('6Lddlt4qAAAAANwBt_1SjBB-Li1Mm9TuAJIqw5iI', {action: 'submit_score'})
+            .then(function(token) {
+                // Add the token to the score data
+                newScore.recaptchaToken = token;
+                
+                try {
+                    if (window.firebaseInitialized && firebase) {
+                        firebase.database().ref('leaderboard').push(newScore)
+                            .then(() => {
+                                submitButton.textContent = 'Submitted!';
+                            })
+                            .catch((error) => {
+                                console.error("Firebase error:", error);
+                                saveToLocalStorage(newScore);
+                            });
+                    } else {
                         saveToLocalStorage(newScore);
-                    });
-            } else {
+                    }
+                } catch (error) {
+                    console.error('Error submitting score:', error);
+                    saveToLocalStorage(newScore);
+                }
+            })
+            .catch(function(error) {
+                console.error('reCAPTCHA error:', error);
+                alert('Error verifying submission. Score saved locally.');
                 saveToLocalStorage(newScore);
-            }
-        } catch (error) {
-            console.error('Error submitting score:', error);
-            saveToLocalStorage(newScore);
-        }
+            });
     } else {
         alert('Please enter your name!');
     }
