@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 const previewCtx = previewCanvas.getContext('2d');
 
 const ROWS = 20;
-const COLS = 10;
+const COLS = 100;
 const BLOCK_SIZE = 30;
 
 const COLORS = [
@@ -65,7 +65,7 @@ function loadLeaderboard() {
     try {
         if (window.firebaseInitialized && firebase) {
             const leaderboardRef = firebase.database().ref('leaderboard');
-            leaderboardRef.orderByChild('score').limitToLast(10).on('value', (snapshot) => {
+            leaderboardRef.orderByChild('score').limitToLast(100).on('value', (snapshot) => {
                 leaderboard = [];
                 snapshot.forEach((childSnapshot) => {
                     leaderboard.push(childSnapshot.val());
@@ -97,7 +97,7 @@ function updateLeaderboardDisplay() {
     
     const sortedScores = leaderboard.sort((a, b) => b.score - a.score);
     
-    sortedScores.slice(0, 10).forEach((entry, index) => {
+    sortedScores.slice(0, 100).forEach((entry, index) => {
         const row = document.createElement('tr');
         
         const rankCell = document.createElement('td');
@@ -184,7 +184,7 @@ function submitScore() {
 function saveToLocalStorage(newScore) {
     leaderboard.push(newScore);
     leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 10);
+    leaderboard = leaderboard.slice(0, 100);
     localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
     updateLeaderboardDisplay();
     const submitButton = document.getElementById('submitScore');
