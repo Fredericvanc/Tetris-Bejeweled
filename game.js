@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 const previewCtx = previewCanvas.getContext('2d');
 
 const ROWS = 20;
-const COLS = 100;
+const COLS = 10;
 const BLOCK_SIZE = 30;
 
 const COLORS = [
