@@ -147,50 +147,63 @@ function submitScore() {
     const submitButton = document.getElementById('submitScore');
     const name = nameInput.value.trim();
     
-    if (name) {
-        submitButton.disabled = true;
-        submitButton.textContent = 'Submitting...';
-        
-        localStorage.setItem('playerName', name);
-        
-        const newScore = {
-            name: name,
-            score: score,
-            date: new Date().toLocaleDateString()
-        };
+    // Validate score and name
+    if (!name) {
+        alert('Please enter your name!');
+        return;
+    }
+    
+    if (name.length > 20) {
+        alert('Name must be 20 characters or less!');
+        return;
+    }
+    
+    if (typeof score !== 'number' || score < 0 || score > 1000000) {
+        console.error('Invalid score detected:', score);
+        alert('Invalid score detected. This has been logged.');
+        return;
+    }
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    localStorage.setItem('playerName', name);
+    
+    const newScore = {
+        name: name,
+        score: score,
+        date: new Date().toLocaleDateString()
+    };
 
-        // Execute reCAPTCHA verification
-        grecaptcha.execute('6Lddlt4qAAAAANwBt_1SjBB-Li1Mm9TuAJIqw5iI', {action: 'submit_score'})
-            .then(function(token) {
-                // Add the token to the score data
-                newScore.recaptchaToken = token;
-                
-                try {
-                    if (window.firebaseInitialized && firebase) {
-                        firebase.database().ref('leaderboard').push(newScore)
-                            .then(() => {
-                                submitButton.textContent = 'Submitted!';
-                            })
-                            .catch((error) => {
-                                console.error("Firebase error:", error);
-                                saveToLocalStorage(newScore);
-                            });
-                    } else {
-                        saveToLocalStorage(newScore);
-                    }
-                } catch (error) {
-                    console.error('Error submitting score:', error);
+    // Execute reCAPTCHA verification
+    grecaptcha.execute('6Lddlt4qAAAAANwBt_1SjBB-Li1Mm9TuAJIqw5iI', {action: 'submit_score'})
+        .then(function(token) {
+            // Add the token to the score data
+            newScore.recaptchaToken = token;
+            
+            try {
+                if (window.firebaseInitialized && firebase) {
+                    firebase.database().ref('leaderboard').push(newScore)
+                        .then(() => {
+                            submitButton.textContent = 'Submitted!';
+                        })
+                        .catch((error) => {
+                            console.error("Firebase error:", error);
+                            saveToLocalStorage(newScore);
+                        });
+                } else {
                     saveToLocalStorage(newScore);
                 }
-            })
-            .catch(function(error) {
-                console.error('reCAPTCHA error:', error);
-                alert('Error verifying submission. Score saved locally.');
+            } catch (error) {
+                console.error('Error submitting score:', error);
                 saveToLocalStorage(newScore);
-            });
-    } else {
-        alert('Please enter your name!');
-    }
+            }
+        })
+        .catch(function(error) {
+            console.error('reCAPTCHA error:', error);
+            alert('Error verifying submission. Score saved locally.');
+            saveToLocalStorage(newScore);
+        });
 }
 
 function saveToLocalStorage(newScore) {
