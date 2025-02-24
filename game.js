@@ -1112,12 +1112,38 @@ function rotatePiece() {
       }
     }
   
+    // Check if rotation is valid, if not, try wall kicks
     if (!isValidMove(currentPiece, 0, 0)) {
+      // Try to move left (for right wall collision)
+      for (let offset = -1; offset >= -3; offset--) {
+        if (isValidMove(currentPiece, offset, 0)) {
+          currentPiece.x += offset;
+          return; // Successfully applied wall kick
+        }
+      }
+      
+      // Try to move right (for left wall collision)
+      for (let offset = 1; offset <= 3; offset++) {
+        if (isValidMove(currentPiece, offset, 0)) {
+          currentPiece.x += offset;
+          return; // Successfully applied wall kick
+        }
+      }
+      
+      // Try to move up (for bottom collision)
+      for (let offset = -1; offset >= -3; offset--) {
+        if (isValidMove(currentPiece, 0, offset)) {
+          currentPiece.y += offset;
+          return; // Successfully applied wall kick
+        }
+      }
+      
+      // If all wall kicks fail, revert the rotation
       currentPiece.shape = oldShape;
       currentPiece.colors = oldColors;
       currentPiece.x = oldX;
       currentPiece.y = oldY;
-      console.log('Rotation reverted – invalid move');
+      console.log('Rotation reverted – invalid move after trying wall kicks');
     }
 }
 
